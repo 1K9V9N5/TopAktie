@@ -157,6 +157,14 @@ deltas_aktien = {
 for i, aktie in enumerate(aktien_liste):
     with aktien_cols[i]:
         st.metric(label=f"{aktie['name']}", value=f"{berechne_preis(aktie['preis_usd']):.2f} {symbol}", delta=deltas_aktien[zeitraum_banner][i])
+        
+        # HIER IST DER TRICK: Ein kleiner Auswahl-Knopf direkt unter der Kachel
+        if st.button(f"🔍 {aktie['name']}", key=f"btn_aktie_{aktie['ticker']}", use_container_width=True):
+            # Wenn geklickt wird, schreiben wir den Ticker auf unseren digitalen Notizblock
+            st.session_state.aktive_aktie = aktie['ticker']
+            # Wir zwingen die App, sofort neu zu laden, damit das Diagramm unten anspringt
+            st.rerun()
+
 
 st.write("")
 st.markdown("### 📊 Top 5 ETFs")
