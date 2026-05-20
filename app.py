@@ -467,7 +467,7 @@ with spalte_details:
                         st.write("")
                         st.markdown("**📊 Wichtige Kennzahlen (Letzte 52 Wochen):**")
                         
-                        # Wir bauen innerhalb der Klappbox noch einmal 3 Spalten für die Kennzahlen!
+                                                # Wir bauen innerhalb der Klappbox noch einmal 3 Spalten für die Kennzahlen!
                         kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
                         
                         hoch_52 = berechne_preis(t_info.get("fiftyTwoWeekHigh", 0.0))
@@ -483,6 +483,46 @@ with spalte_details:
                                 st.metric(label="Handelsvolumen", value=f"{volumen / 1_000_000:.1f} Mio.")
                             else: 
                                 st.metric(label="Handelsvolumen", value=f"{volumen:,}")
+                        st.write("")
+                        
+                        # 📱 MOBILE- & PC-OPTIMIERTES PREISALARM-SYSTEM (INTEGRIERT)
+                        st.markdown("##### ⏰ Integrierten Preis-Alarm für dieses Produkt einrichten:")
+                        
+                        # Am PC nebeneinander, am Handy bricht Streamlit diese Spalten automatisch untereinander um!
+                        col_w, col_e = st.columns(2)
+                        with col_w:
+                            # Das Wunschpreis-Feld (Nutzt den Ticker als eindeutigen Schlüssel)
+                            wunsch_in_box = st.number_input(f"Wunschpreis für {treffer['ticker']} ({symbol_ticker}):", min_value=0.0, value=float(round(preis_anzeige * 0.9, 2)), key=f"preis_{treffer['ticker']}")
+                        with col_e:
+                            # Das E-Mail-Eingabefeld
+                            email_in_box = st.text_input("Deine E-Mail für Alarme:", placeholder="deine-mail@web.de", key=f"email_{treffer['ticker']}")
+
+                        # Der Aktivierungsbutton sitzt zentriert darunter im Hauptbereich
+                        if st.button("🔔 Alarm für dieses Produkt aktivieren", key=f"btn_{treffer['ticker']}"):
+                            # 1. Validierung: Wir prüfen die E-Mail direkt aus der Box
+                            if email_in_box and "@" in email_in_box:
+                                try:
+                                    # 2. Daten inkl. E-Mail in deinen Session-State-Speicher packen
+                                    neuer_alarm = {
+                                        "ticker": treffer["ticker"],
+                                        "name": treffer["name"],
+                                        "aktuell": preis_anzeige,
+                                        "ziel": wunsch_in_box, 
+                                        "symbol": symbol_ticker,
+                                        "email": email_in_box
+                                    }
+                                    st.session_state.alarme.append(neuer_alarm)
+                                    st.success(f"🟢 Alarm aktiv! Bestätigung an {email_in_box} eingerichtet.")
+                                    
+                                    # 3. DER INTEGRIERTE SOFORT-CHECK (Deine originale Logik)
+                                    if preis_anzeige <= wunsch_in_box:
+                                        erfolg = send_price_alert_email(email_in_box, treffer["ticker"], f"{preis_anzeige:.2f}{symbol_ticker}", f"{wunsch_in_box:.2f}{symbol_ticker}")
+                                        if erfolg:
+                                            st.info("📬 Sofort-Check: Preis-Alarm wurde bereits ausgelöst und E-Mail versendet!")
+                                except Exception as e:
+                                    st.error(f"Fehler beim Einrichten: {e}")
+                            else:
+                                st.error("❌ Bitte gib eine gültige E-Mail-Adresse mit '@' ein, um den Alarm zu aktivieren.")
                         st.write("")
                         
                         beschreibung = t_info.get("longBusinessSummary", "Keine Beschreibung gefunden.")
