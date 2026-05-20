@@ -211,8 +211,12 @@ elif ausgewaehlter_etf == "S&P 500":
 elif ausgewaehlter_etf == "NASDAQ-100":
     ticker_symbol = "QQQ"
 
-# Wir bauen einen Aktivierungs-Knopf in die Sidebar
-berechnung_starten = st.sidebar.button("🐷 Sparplan berechnen")
+# HIER ÄNDERN WIR ES: Der Button zieht von st.sidebar auf die Hauptseite (st.button)
+st.markdown("---")
+st.markdown("### 🐷 Dein Sparschwein-Rechner")
+st.info("Stelle links in der Menüleiste deine Wunschdaten ein und klicke hier auf Berechnen:")
+
+berechnung_starten = st.button("🚀 Sparplan jetzt live berechnen", type="primary")
 
 # NUR wenn der Nutzer den Knopf drückt, wird der Code darin ausgeführt!
 if berechnung_starten:
@@ -222,16 +226,14 @@ if berechnung_starten:
         historische_daten = yf.download(ticker_symbol, period=zeitraum_text, interval="1mo")
         
         if not historische_daten.empty:
-            # WICHTIG: Falls Yahoo ein verschachteltes Multi-Index-Format liefert, flachen wir es hier ab!
             if isinstance(historische_daten.columns, pd.MultiIndex):
                 historische_daten.columns = historische_daten.columns.get_level_values(0)
             
-            st.sidebar.success("Daten erfolgreich geladen!")
+            st.success("Daten erfolgreich aus dem Internet geladen!")
             
             # ==================================================================
             # DIE MATHEMATIK FÜR DEIN SPARSCHWEIN
             # ==================================================================
-            # Wir holen uns die Spalte 'Close' und stellen sicher, dass sie sauber gelesen wird
             schlusskurse = historische_daten['Close']
             
             gesamt_anteile = 0.0
@@ -239,42 +241,31 @@ if berechnung_starten:
             vermoegens_verlauf = []
             monate_liste = []
             
-            # Die Schleife wandert Monat für Monat durch die echten Kurse der Vergangenheit
             for datum, kurs in schlusskurse.items():
-                # Wir holen den reinen mathematischen Wert aus dem Pandas-Objekt
-                reiner_kurs = float(kurs.iloc[0]) if hasattr(kurs, 'iloc') else float(kurs)
-                
-                # Wir rechnen den Kurs von Dollar in Euro um, falls nötig
+                reiner_kurs = float(kurs.iloc) if hasattr(kurs, 'iloc') else float(kurs)
                 kurs_in_eur = reiner_kurs * USD_ZU_EUR if waehrung == "EUR" else reiner_kurs
                 
-                # Formel 1: Jeden Monat wandert die Sparrate in den Topf
                 eingezahltes_kapital += monatliche_rate
                 
-                # Formel 2: Geteilt-Rechnung für die Anteile (Geld / Kurs)
                 if kurs_in_eur > 0:
                     neue_anteile = monatliche_rate / kurs_in_eur
                     gesamt_anteile += neue_anteile
                 
-                # Formel 3: Aktueller Wert des Depots in diesem Monat
                 aktueller_wert = gesamt_anteile * kurs_in_eur
-                
-                # Wir merken uns die Werte für das spätere Diagramm
                 vermoegens_verlauf.append(aktueller_wert)
                 monate_liste.append(datum)
             
-            # Letzten gültigen Kurs für das Endguthaben ermitteln
             letzter_kurs_raw = schlusskurse.iloc[-1]
-            letzter_kurs = float(letzter_kurs_raw.iloc[0]) if hasattr(letzter_kurs_raw, 'iloc') else float(letzter_kurs_raw)
+            letzter_kurs = float(letzter_kurs_raw.iloc) if hasattr(letzter_kurs_raw, 'iloc') else float(letzter_kurs_raw)
             letzter_kurs_eur = letzter_kurs * USD_ZU_EUR if waehrung == "EUR" else letzter_kurs
             
-            # Endergebnisse berechnen
             finaler_wert = gesamt_anteile * letzter_kurs_eur
             gewinn = finaler_wert - eingezahltes_kapital
             
             # ==================================================================
             # ANZEIGE IM HAUPTFENSTER (DIAGRAMM)
             # ==================================================================
-            st.markdown(f"## 📊 Dein Sparplan-Ergebnis für den {ausgewaehlter_etf}")
+            st.markdown(f"## 📊 Ergebnisse für den {ausgewaehlter_etf}")
             
             # 3 Kacheln für die Übersicht im Hauptfenster anzeigen
             sp1, sp2, sp3 = st.columns(3)
@@ -297,9 +288,9 @@ if berechnung_starten:
             st.plotly_chart(fig, use_container_width=True)
             
         else:
-            st.sidebar.warning("Yahoo blockiert gerade. Bitte kurz warten.")
+            st.error("Yahoo blockiert gerade. Bitte kurz warten.")
     except Exception as e:
-        st.sidebar.warning(f"Fehler bei der Berechnung: {str(e)}")
+        st.error(f"Fehler bei der Berechnung: {str(e)}")
 
 
 # ==============================================================================
