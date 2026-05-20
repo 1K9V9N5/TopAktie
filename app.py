@@ -299,6 +299,7 @@ if berechnung_starten:
 # Hier aktivieren wir den unsichtbaren Zwischenspeicher der Webseite für Favoriten und Alarme
 if "favoriten" not in st.session_state: st.session_state.favoriten = []
 if "alarme" not in st.session_state: st.session_state.alarme = []
+if "aktive_aktie" not in st.session_state: st.session_state.aktive_aktie = "AAPL"
 
 st.sidebar.header("🔍 Globale Volltextsuche")
 st.sidebar.info("Suche nach Firmennamen oder Ticker (z.B. Tesla, Sony, Intel, BMW)")
