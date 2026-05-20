@@ -197,6 +197,24 @@ jahre = st.sidebar.slider(
 
 st.sidebar.divider() # Eine feine Linie zur optischen Trennung in der Sidebar
 
+# Übersetzung der ETF-Namen in offizielle Yahoo-Kürzel
+if ausgewaehlter_etf == "MSCI World":
+    ticker_symbol = "URTH"
+elif ausgewaehlter_etf == "S&P 500":
+    ticker_symbol = "SPY"
+elif ausgewaehlter_etf == "NASDAQ-100":
+    ticker_symbol = "QQQ"
+
+# Das ist die Sicherheits-Kapsel!
+try:
+    zeitraum_text = f"{jahre}y"
+    historische_daten = yf.download(ticker_symbol, period=zeitraum_text, interval="1mo")
+    
+    # Sicherheits-Check: Falls Yahoo uns blockiert
+    if historische_daten.empty:
+        st.sidebar.warning("Yahoo Finance ist gerade ausgelastet. Preise laden gleich neu...")
+except:
+    st.sidebar.warning("Verbindung zu Yahoo wird neu aufgebaut...")
 
 # ==============================================================================
 # BEREICH 6: DIE LINKE SEITENLEISTE (EINGABEFELDER FÜR SUCHE & ALARM)
