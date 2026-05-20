@@ -366,26 +366,24 @@ with spalte_details:
         if gefundene_ergebnisse:
             st.write(f"Im Netz gefundene Produkte für **'{such_eingabe}'**:")
             
-            for i, treffer in enumerate(gefundene_ergebnisse):
-                try:
-                    ticker_objekt = yf.Ticker(treffer["ticker"])
-                    t_info = ticker_objekt.info
+                    for i, treffer in enumerate(gefundene_ergebnisse):
+            try:
+                ticker_objekt = yf.Ticker(treffer["ticker"])
+                t_info = ticker_objekt.info
+                
+                roher_preis = t_info.get("currentPrice") or t_info.get("previousClose") or t_info.get("regularMarketPrice", 0.0)
+                preis_anzeige = berechne_preis(roher_preis)
+                
+                # # Ein Expander baut die ausklappbare Klappbox...
+                with st.expander(f"🔹 {treffer['name']} ({treffer['ticker']}) — {preis_anzeige:.2f} {symbol}"):
                     
-                    roher_preis = t_info.get("currentPrice") or t_info.get("previousClose") or t_info.get("regularMarketPrice", 0.0)
-                    preis_anzeige = berechne_preis(roher_preis)
-                    
-                    # Ein Expander baut die ausklappbare Klappbox für das Suchergebnis
-    with st.expander(f"🔹 {treffer['name']} ({treffer['ticker']}) — {preis_anzeige:.2f} {symbol}"):
-        
-               # ==============================================================================
-        # NEU: ZEITRAUM-STEUERUNG DIREKT IM EXPANDER
-        # ==============================================================================
-        chart_zeitraum = st.radio(
-            "Zeitraum für das Diagramm anpassen:", 
-            options=["1 Tag", "1 Woche", "1 Monat", "1 Jahr"], 
-            horizontal=True,
-            key=f"chart_period_{treffer['ticker']}"
-        )
+                    # --- NEU: ZEITRAUM STEUERUNG DIREKT IM EXPANDER ---
+                    chart_zeitraum = st.radio(
+                        "Zeitraum für das Diagramm anpassen:",
+                        options=["1 Tag", "1 Woche", "1 Monat", "1 Jahr"],
+                        horizontal=True,
+                        key=f"chart_period_{treffer['ticker']}"
+                    )
 
         # Unsere logische Weiche für Yahoo Finance
         if chart_zeitraum == "1 Tag":
