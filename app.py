@@ -366,67 +366,70 @@ with spalte_details:
         if gefundene_ergebnisse:
             st.write(f"Im Netz gefundene Produkte für **'{such_eingabe}'**:")
             
-        for i, treffer in enumerate(gefundene_ergebnisse):
-            try:
-                ticker_objekt = yf.Ticker(treffer["ticker"])
-                t_info = ticker_objekt.info
-                
-                roher_preis = t_info.get("currentPrice") or t_info.get("previousClose") or t_info.get("regularMarketPrice", 0.0)
-                preis_anzeige = berechne_preis(roher_preis)
-                
-                # # Ein Expander baut die ausklappbare Klappbox...
-                with st.expander(f"🔹 {treffer['name']} ({treffer['ticker']}) — {preis_anzeige:.2f} {symbol}"):
+            # Korrekte Einrückung für die Schleife innerhalb des IF-Statements
+            for i, treffer in enumerate(gefundene_ergebnisse):
+                try:
+                    ticker_objekt = yf.Ticker(treffer["ticker"])
+                    t_info = ticker_objekt.info
                     
-                    # --- NEU: ZEITRAUM STEUERUNG DIREKT IM EXPANDER ---
-                    chart_zeitraum = st.radio(
-                        "Zeitraum für das Diagramm anpassen:",
-                        options=["1 Tag", "1 Woche", "1 Monat", "1 Jahr"],
-                        horizontal=True,
-                        key=f"chart_period_{treffer['ticker']}"
-                    )
-
-        # Unsere logische Weiche für Yahoo Finance
-        if chart_zeitraum == "1 Tag":
-            yahoo_periode = "1d"
-            yahoo_intervall = "5m"
-        elif chart_zeitraum == "1 Woche":
-            yahoo_periode = "5d"
-            yahoo_intervall = "15m"
-        elif chart_zeitraum == "1 Monat":
-            yahoo_periode = "1mo"
-            yahoo_intervall = "1d"
-        elif chart_zeitraum == "1 Jahr":
-            yahoo_periode = "1y"
-            yahoo_intervall = "1wk"
-
-        try:
-            chart_daten = yf.download(treffer['ticker'], period=yahoo_periode, interval=yahoo_intervall)
-            
-            if not chart_daten.empty:
-                if isinstance(chart_daten.columns, pd.MultiIndex):
-                    chart_daten.columns = chart_daten.columns.get_level_values(0)
+                    roher_preis = t_info.get("currentPrice") or t_info.get("previousClose") or t_info.get("regularMarketPrice", 0.0)
+                    preis_anzeige = berechne_preis(roher_preis)
                     
-                fig_chart = go.Figure()
-                fig_chart.add_trace(go.Scatter(
-                    x=chart_daten.index, 
-                    y=chart_daten['Close'], 
-                    name="Schlusskurs", 
-                    line=dict(color="#00F2FE", width=2)
-                ))
-                
-                fig_chart.update_layout(
-                    template="plotly_dark",
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    plot_bgcolor="#131A26",
-                    margin=dict(l=10, r=10, t=10, b=10),
-                    height=300
-                )
-                
-                st.plotly_chart(fig_chart, use_container_width=True)
-            else:
-                st.warning("Keine historischen Kursdaten verfügbar.")
-        except Exception as e:
-            st.error(f"Fehler beim Laden des Charts: {str(e)}")
+                    # Der Expander wird innerhalb des try-Blocks geöffnet
+                    with st.expander(f"🔹 {treffer['name']} ({treffer['ticker']}) — {preis_anzeige:.2f} {symbol}"):
+                        
+                        # --- NEU: ZEITRAUM STEUERUNG DIREKT IM EXPANDER ---
+                        chart_zeitraum = st.radio(
+                            "Zeitraum für das Diagramm anpassen:",
+                            options=["1 Tag", "1 Woche", "1 Monat", "1 Jahr"],
+                            horizontal=True,
+                            key=f"chart_period_{treffer['ticker']}"
+                        )
+                        
+                        # Unsere logische Weiche für Yahoo Finance (eingerückt im Expander)
+                        if chart_zeitraum == "1 Tag":
+                            yahoo_periode = "1d"
+                            yahoo_intervall = "5m"
+                        elif chart_zeitraum == "1 Woche":
+                            yahoo_periode = "5d"
+                            yahoo_intervall = "15m"
+                        elif chart_zeitraum == "1 Monat":
+                            yahoo_periode = "1mo"
+                            yahoo_intervall = "1d"
+                        elif chart_zeitraum == "1 Jahr":
+                            yahoo_periode = "1y"
+                            yahoo_intervall = "1wk"
+
+                        # Der Chart-Download und das Zeichnen MÜSSEN im Expander liegen
+                        chart_daten = yf.download(treffer['ticker'], period=yahoo_periode, interval=yahoo_intervall)
+                        
+                        if not chart_daten.empty:
+                            if isinstance(chart_daten.columns, pd.MultiIndex):
+                                chart_daten.columns = chart_daten.columns.get_level_values(0)
+                                
+                            fig_chart = go.Figure()
+                            fig_chart.add_trace(go.Scatter(
+                                x=chart_daten.index, 
+                                y=chart_daten['Close'], 
+                                name="Schlusskurs", 
+                                line=dict(color="#00F2FE", width=2)
+                            ))
+                            
+                            fig_chart.update_layout(
+                                template="plotly_dark",
+                                paper_bgcolor="rgba(0,0,0,0)",
+                                plot_bgcolor="#131A26",
+                                margin=dict(l=10, r=10, t=10, b=10),
+                                height=300
+                            )
+                            
+                            st.plotly_chart(fig_chart, use_container_width=True)
+                        else:
+                            st.warning("Keine historischen Kursdaten verfügbar.")
+                            
+                except Exception as e:
+                    # Fängt Fehler für das Laden der Aktien-Infos ODER des Charts sauber ab
+                    st.error(f"Fehler bei {treffer['ticker']}: {str(e)}")
 
             
         # HIERFOLGEN JETZT DEINE BISHERIGEN KENNZAHLEN (die schon im Expander drin standen)...
