@@ -217,15 +217,76 @@ berechnung_starten = st.sidebar.button("🐷 Sparplan berechnen")
 if berechnung_starten:
     try:
         zeitraum_text = f"{jahre}y"
-        # Wir laden die Daten völlig isoliert
+        # Wir laden die historischen Daten
         historische_daten = yf.download(ticker_symbol, period=zeitraum_text, interval="1mo")
         
         if not historische_daten.empty:
             st.sidebar.success("Daten erfolgreich geladen!")
+            
+            # ==================================================================
+            # DIE MATHEMATIK FÜR DEIN SPARSCHWEIN
+            # ==================================================================
+            # Wir holen uns die Spalte 'Close' (Schlusskurs des Monats)
+            schlusskurse = historische_daten['Close']
+            
+            gesamt_anteile = 0
+            eingezahltes_kapital = 0
+            vermoegens_verlauf = []
+            monate_liste = []
+            
+            # Die Schleife wandert Monat für Monat durch die echten Kurse der Vergangenheit
+            for datum, kurs in schlusskurse.items():
+                # Wir rechnen den Kurs von Dollar in Euro um, falls nötig
+                kurs_in_eur = kurs * USD_ZU_EUR if waehrung == "EUR" else float(kurs)
+                
+                # Formel 1: Jeden Monat wandert die Sparrate in den Topf
+                eingezahltes_kapital += monatliche_rate
+                
+                # Formel 2: Geteilt-Rechnung für die Anteile (Geld / Kurs)
+                neue_anteile = monatliche_rate / kurs_in_eur
+                gesamt_anteile += neue_anteile
+                
+                # Formel 3: Aktueller Wert des Depots in diesem Monat
+                aktueller_wert = gesamt_anteile * kurs_in_eur
+                
+                # Wir merken uns die Werte für das spätere Diagramm
+                vermoegens_verlauf.append(aktueller_wert)
+                monate_liste.append(datum)
+            
+            # Endergebnisse berechnen
+            finaler_wert = gesamt_anteile * (schlusskurse.iloc[-1] * (USD_ZU_EUR if waehrung == "EUR" else 1.0))
+            gewinn = finaler_wert - eingezahltes_kapital
+            
+            # ==================================================================
+            # ANZEIGE IM HAUPTFENSTER (DIAGRAMM)
+            # ==================================================================
+            st.markdown(f"## 📊 Dein Sparplan-Ergebnis für den {ausgewaehlter_etf}")
+            
+            # 3 Kacheln für die Übersicht im Hauptfenster anzeigen
+            sp1, sp2, sp3 = st.columns(3)
+            with sp1:
+                st.metric("Eingezahltes Geld", f"{eingezahltes_kapital:,.2f} {symbol}")
+            with sp2:
+                st.metric("Endguthaben", f"{finaler_wert:,.2f} {symbol}")
+            with sp3:
+                st.metric("Dein Gewinn", f"{gewinn:,.2f} {symbol}", delta=f"{gewinn:,.2f} {symbol}")
+                
+            # Hier zeichnen wir die bunte Vermögenslinie mit Plotly
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=monate_liste, y=vermoegens_verlauf, name="Depotwert", line=dict(color="#00F2FE", width=3)))
+            fig.update_layout(
+                title="Wachstum deines Sparschweins über die Zeit",
+                template="plotly_dark",
+                background_color="#131A26",
+                plot_bgcolor="#131A26"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
         else:
             st.sidebar.warning("Yahoo blockiert gerade. Bitte kurz warten.")
-    except:
-        st.sidebar.warning("Verbindung wird neu aufgebaut...")
+    except Exception as e:
+        st.sidebar.warning(f"Fehler bei der Berechnung: {str(e)}")
+
 
 # ==============================================================================
 # BEREICH 6: DIE LINKE SEITENLEISTE (EINGABEFELDER FÜR SUCHE & ALARM)
