@@ -366,7 +366,7 @@ with spalte_details:
         if gefundene_ergebnisse:
             st.write(f"Im Netz gefundene Produkte für **'{such_eingabe}'**:")
             
-                    for i, treffer in enumerate(gefundene_ergebnisse):
+        for i, treffer in enumerate(gefundene_ergebnisse):
             try:
                 ticker_objekt = yf.Ticker(treffer["ticker"])
                 t_info = ticker_objekt.info
