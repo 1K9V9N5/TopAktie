@@ -375,7 +375,7 @@ with spalte_details:
                     preis_anzeige = berechne_preis(roher_preis)
                     
                     # Ein Expander baut die ausklappbare Klappbox für das Suchergebnis
-with st.expander(f"🔹 {treffer['name']} ({treffer['ticker']}) — {preis_anzeige:.2f} {symbol}"):
+    with st.expander(f"🔹 {treffer['name']} ({treffer['ticker']}) — {preis_anzeige:.2f} {symbol}"):
         
                # ==============================================================================
         # NEU: ZEITRAUM-STEUERUNG DIREKT IM EXPANDER
