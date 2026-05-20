@@ -375,7 +375,64 @@ with spalte_details:
                     preis_anzeige = berechne_preis(roher_preis)
                     
                     # Ein Expander baut die ausklappbare Klappbox für das Suchergebnis
-                    with st.expander(f"🔹 {treffer['name']} ({treffer['ticker']}) — {preis_anzeige:.2f} {symbol}"):
+                        with st.expander(f"🔹 {treffer['name']} ({treffer['ticker']}) — {preis_anzeige:.2f} {symbol}"):
+        
+               # ==============================================================================
+        # NEU: ZEITRAUM-STEUERUNG DIREKT IM EXPANDER
+        # ==============================================================================
+        chart_zeitraum = st.radio(
+            "Zeitraum für das Diagramm anpassen:", 
+            options=["1 Tag", "1 Woche", "1 Monat", "1 Jahr"], 
+            horizontal=True,
+            key=f"chart_period_{treffer['ticker']}"
+        )
+
+        # Unsere logische Weiche für Yahoo Finance
+        if chart_zeitraum == "1 Tag":
+            yahoo_periode = "1d"
+            yahoo_intervall = "5m"
+        elif chart_zeitraum == "1 Woche":
+            yahoo_periode = "5d"
+            yahoo_intervall = "15m"
+        elif chart_zeitraum == "1 Monat":
+            yahoo_periode = "1mo"
+            yahoo_intervall = "1d"
+        elif chart_zeitraum == "1 Jahr":
+            yahoo_periode = "1y"
+            yahoo_intervall = "1wk"
+
+        try:
+            chart_daten = yf.download(treffer['ticker'], period=yahoo_periode, interval=yahoo_intervall)
+            
+            if not chart_daten.empty:
+                if isinstance(chart_daten.columns, pd.MultiIndex):
+                    chart_daten.columns = chart_daten.columns.get_level_values(0)
+                    
+                fig_chart = go.Figure()
+                fig_chart.add_trace(go.Scatter(
+                    x=chart_daten.index, 
+                    y=chart_daten['Close'], 
+                    name="Schlusskurs", 
+                    line=dict(color="#00F2FE", width=2)
+                ))
+                
+                fig_chart.update_layout(
+                    template="plotly_dark",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="#131A26",
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    height=300
+                )
+                
+                st.plotly_chart(fig_chart, use_container_width=True)
+            else:
+                st.warning("Keine historischen Kursdaten verfügbar.")
+        except Exception as e:
+            st.error(f"Fehler beim Laden des Charts: {str(e)}")
+
+            
+        # HIERFOLGEN JETZT DEINE BISHERIGEN KENNZAHLEN (die schon im Expander drin standen)...
+
                         st.markdown(f"**Typ:** {treffer['typ']} | **Börsenplatz:** {t_info.get('exchange', 'Unbekannt')}")
                         st.markdown(f"**Branche:** {t_info.get('industry', 'Keine Angabe')} | **Land:** {t_info.get('country', 'Keine Angabe')}")
                         
