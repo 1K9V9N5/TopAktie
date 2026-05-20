@@ -221,30 +221,38 @@ if berechnung_starten:
         historische_daten = yf.download(ticker_symbol, period=zeitraum_text, interval="1mo")
         
         if not historische_daten.empty:
+            # WICHTIG: Falls Yahoo ein verschachteltes Multi-Index-Format liefert, flachen wir es hier ab!
+            if isinstance(historische_daten.columns, pd.MultiIndex):
+                historische_daten.columns = historische_daten.columns.get_level_values(0)
+            
             st.sidebar.success("Daten erfolgreich geladen!")
             
             # ==================================================================
             # DIE MATHEMATIK FÜR DEIN SPARSCHWEIN
             # ==================================================================
-            # Wir holen uns die Spalte 'Close' (Schlusskurs des Monats)
+            # Wir holen uns die Spalte 'Close' und stellen sicher, dass sie sauber gelesen wird
             schlusskurse = historische_daten['Close']
             
-            gesamt_anteile = 0
-            eingezahltes_kapital = 0
+            gesamt_anteile = 0.0
+            eingezahltes_kapital = 0.0
             vermoegens_verlauf = []
             monate_liste = []
             
             # Die Schleife wandert Monat für Monat durch die echten Kurse der Vergangenheit
             for datum, kurs in schlusskurse.items():
+                # Wir holen den reinen mathematischen Wert aus dem Pandas-Objekt
+                reiner_kurs = float(kurs.iloc[0]) if hasattr(kurs, 'iloc') else float(kurs)
+                
                 # Wir rechnen den Kurs von Dollar in Euro um, falls nötig
-                kurs_in_eur = kurs * USD_ZU_EUR if waehrung == "EUR" else float(kurs)
+                kurs_in_eur = reiner_kurs * USD_ZU_EUR if waehrung == "EUR" else reiner_kurs
                 
                 # Formel 1: Jeden Monat wandert die Sparrate in den Topf
                 eingezahltes_kapital += monatliche_rate
                 
                 # Formel 2: Geteilt-Rechnung für die Anteile (Geld / Kurs)
-                neue_anteile = monatliche_rate / kurs_in_eur
-                gesamt_anteile += neue_anteile
+                if kurs_in_eur > 0:
+                    neue_anteile = monatliche_rate / kurs_in_eur
+                    gesamt_anteile += neue_anteile
                 
                 # Formel 3: Aktueller Wert des Depots in diesem Monat
                 aktueller_wert = gesamt_anteile * kurs_in_eur
@@ -253,8 +261,13 @@ if berechnung_starten:
                 vermoegens_verlauf.append(aktueller_wert)
                 monate_liste.append(datum)
             
+            # Letzten gültigen Kurs für das Endguthaben ermitteln
+            letzter_kurs_raw = schlusskurse.iloc[-1]
+            letzter_kurs = float(letzter_kurs_raw.iloc[0]) if hasattr(letzter_kurs_raw, 'iloc') else float(letzter_kurs_raw)
+            letzter_kurs_eur = letzter_kurs * USD_ZU_EUR if waehrung == "EUR" else letzter_kurs
+            
             # Endergebnisse berechnen
-            finaler_wert = gesamt_anteile * (schlusskurse.iloc[-1] * (USD_ZU_EUR if waehrung == "EUR" else 1.0))
+            finaler_wert = gesamt_anteile * letzter_kurs_eur
             gewinn = finaler_wert - eingezahltes_kapital
             
             # ==================================================================
@@ -277,7 +290,7 @@ if berechnung_starten:
             fig.update_layout(
                 title="Wachstum deines Sparschweins über die Zeit",
                 template="plotly_dark",
-                background_color="#131A26",
+                paper_bgcolor="#0B0F19",
                 plot_bgcolor="#131A26"
             )
             st.plotly_chart(fig, use_container_width=True)
