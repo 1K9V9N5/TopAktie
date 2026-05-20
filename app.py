@@ -205,16 +205,22 @@ elif ausgewaehlter_etf == "S&P 500":
 elif ausgewaehlter_etf == "NASDAQ-100":
     ticker_symbol = "QQQ"
 
-# Das ist die Sicherheits-Kapsel!
-try:
-    zeitraum_text = f"{jahre}y"
-    historische_daten = yf.download(ticker_symbol, period=zeitraum_text, interval="1mo")
-    
-    # Sicherheits-Check: Falls Yahoo uns blockiert
-    if historische_daten.empty:
-        st.sidebar.warning("Yahoo Finance ist gerade ausgelastet. Preise laden gleich neu...")
-except:
-    st.sidebar.warning("Verbindung zu Yahoo wird neu aufgebaut...")
+# Wir bauen einen Aktivierungs-Knopf in die Sidebar
+berechnung_starten = st.sidebar.button("🐷 Sparplan berechnen")
+
+# NUR wenn der Nutzer den Knopf drückt, wird der Code darin ausgeführt!
+if berechnung_starten:
+    try:
+        zeitraum_text = f"{jahre}y"
+        # Wir laden die Daten völlig isoliert
+        historische_daten = yf.download(ticker_symbol, period=zeitraum_text, interval="1mo")
+        
+        if not historische_daten.empty:
+            st.sidebar.success("Daten erfolgreich geladen!")
+        else:
+            st.sidebar.warning("Yahoo blockiert gerade. Bitte kurz warten.")
+    except:
+        st.sidebar.warning("Verbindung wird neu aufgebaut...")
 
 # ==============================================================================
 # BEREICH 6: DIE LINKE SEITENLEISTE (EINGABEFELDER FÜR SUCHE & ALARM)
