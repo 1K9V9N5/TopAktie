@@ -100,31 +100,36 @@ symbol = "$" if waehrung == "USD" else "€"
 # ==============================================================================
 # BEREICH 4: DER CACHE (ZWISCHENSPEICHER FÜR DIE OBEREN TOP 5 METRICS)
 # ==============================================================================
-@st.cache_data # Verhindert, dass die Seite bei jedem Klick stockt (merkt sich die Daten)
+@st.cache_data(ttl=60) # ttl=60 sorgt dafür, dass sich der Cache nach 60 Sekunden von SELBST löscht!
 def lade_banner_daten():
-    # Eine feste Liste von 10 Werten, die wir oben als Standard-Vorschau anzeigen wollen
     rohdaten = [
-        {"typ": "Aktie", "name": "Apple", "ticker": "AAPL"},
-        {"typ": "Aktie", "name": "Microsoft", "ticker": "MSFT"},
-        {"typ": "Aktie", "name": "Nvidia", "ticker": "NVDA"},
-        {"typ": "Aktie", "name": "Alphabet", "ticker": "GOOGL"},
-        {"typ": "Aktie", "name": "Amazon", "ticker": "AMZN"},
-        {"typ": "ETF", "name": "iShares MSCI World", "ticker": "EUNL.DE"},
-        {"typ": "ETF", "name": "Vanguard All-World", "ticker": "VWCE.DE"},
-        {"typ": "ETF", "name": "iShares S&P 500", "ticker": "SXR8.DE"},
-        {"typ": "ETF", "name": "Xtrackers MSCI Europe", "ticker": "DBX1.DE"},
-        {"typ": "ETF", "name": "Lyxor Euro Stoxx 50", "ticker": "MSE.PA"}
+        {"typ": "Aktie", "name": "Apple", "ticker": "AAPL", "fallback": 175.50},
+        {"typ": "Aktie", "name": "Microsoft", "ticker": "MSFT", "fallback": 415.20},
+        {"typ": "Aktie", "name": "Nvidia", "ticker": "NVDA", "fallback": 875.00},
+        {"typ": "Aktie", "name": "Alphabet", "ticker": "GOOGL", "fallback": 150.30},
+        {"typ": "Aktie", "name": "Amazon", "ticker": "AMZN", "fallback": 178.40},
+        {"typ": "ETF", "name": "iShares MSCI World", "ticker": "EUNL.DE", "fallback": 85.30},
+        {"typ": "ETF", "name": "Vanguard All-World", "ticker": "VWCE.DE", "fallback": 112.10},
+        {"typ": "ETF", "name": "iShares S&P 500", "ticker": "SXR8.DE", "fallback": 495.60},
+        {"typ": "ETF", "name": "Xtrackers MSCI Europe", "ticker": "DBX1.DE", "fallback": 75.40},
+        {"typ": "ETF", "name": "Lyxor Euro Stoxx 50", "ticker": "MSE.PA", "fallback": 52.10}
     ]
     for eintrag in rohdaten:
         try:
             t_data = yf.Ticker(eintrag["ticker"])
-            preis = t_data.info.get("currentPrice") or t_data.info.get("previousClose", 150.0)
-            eintrag["preis_usd"] = preis # Speichert den echten Preis in Dollar ab
+            # fast_info umgeht die normale Yahoo-Blockade und zieht direkt den letzten Preis
+            preis = t_data.fast_info.last_price or t_data.info.get("currentPrice")
+            if preis and preis > 0:
+                eintrag["preis_usd"] = preis
+            else:
+                eintrag["preis_usd"] = eintrag["fallback"]
         except:
-            eintrag["preis_usd"] = 150.0
+            # Falls Yahoo komplett dichtmacht, nutzen wir den echten Richtwert statt 150
+            eintrag["preis_usd"] = eintrag["fallback"]
     return rohdaten
 
 banner_daten = lade_banner_daten()
+
 
 # Eine kleine mathematische Funktion, die den Preis mit 0.92 multipliziert, falls EUR gewählt ist
 def berechne_preis(preis_usd):
