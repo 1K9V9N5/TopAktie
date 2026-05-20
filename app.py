@@ -2,6 +2,7 @@ import streamlit as st
 import yfinance as yf
 import plotly.graph_objects as go
 from datetime import datetime
+import pandas as pd
 
 # ==============================================================================
 # BEREICH 1: DAS ALIEN-DESIGN & DIE FARBEN (CSS-TRICKS)
