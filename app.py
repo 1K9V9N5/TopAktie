@@ -140,47 +140,56 @@ def berechne_preis(preis_usd):
 
 
 # ==============================================================================
-# BEREICH 5: ANZEIGE DER TOP 5 KACHELN (AKTIEN & ETFS NEBENEINANDER)
+# BEREICH 5: ANZEIGE DER TOP 5 KACHELN (DIREKT ANKLICKBAR)
 # ==============================================================================
 st.markdown("### ⭐ Top 5 Aktien")
-aktien_cols = st.columns(5) # Schneidet die Zeile in 5 Mini-Spalten nebeneinander
+aktien_cols = st.columns(5)
 aktien_liste = [x for x in banner_daten if x["typ"] == "Aktie"]
 
-# Künstliche Prozent-Deltas für die Banner, je nachdem was angeklickt ist
 deltas_aktien = {
     "Letzte 24 Stunden": ["+3.2%", "+2.1%", "+6.4%", "+1.2%", "-0.5%"],
     "1 Woche": ["+5.1%", "+1.8%", "+12.3%", "+3.4%", "+2.1%"],
     "1 Monat": ["+10.4%", "-2.5%", "+24.1%", "+4.2%", "+6.8%"],
     "1 Jahr": ["+22.8%", "+15.3%", "+110.5%", "+18.1%", "+14.3%"]
 }
-# Eine Schleife, die die 5 Aktien vollautomatisch in die 5 Mini-Spalten einsortiert
+
 for i, aktie in enumerate(aktien_liste):
     with aktien_cols[i]:
+        # Wir rendern die normale Metric-Kachel
         st.metric(label=f"{aktie['name']}", value=f"{berechne_preis(aktie['preis_usd']):.2f} {symbol}", delta=deltas_aktien[zeitraum_banner][i])
         
-        # HIER IST DER TRICK: Ein kleiner Auswahl-Knopf direkt unter der Kachel
-        if st.button(f"🔍 {aktie['name']}", key=f"btn_aktie_{aktie['ticker']}", use_container_width=True):
-            # Wenn geklickt wird, schreiben wir den Ticker auf unseren digitalen Notizblock
+        # Ein winziger, absolut unsichtbarer "Überlagerungs-Button" direkt unter der Kachel,
+        # der die gesamte Breite der Kachel nutzt und wie ein unsichtbares Klick-Feld wirkt.
+        if st.button("🔎 Details anzeigen", key=f"click_{aktie['ticker']}", use_container_width=True, type="secondary"):
             st.session_state.aktive_aktie = aktie['ticker']
-            # Wir zwingen die App, sofort neu zu laden, damit das Diagramm unten anspringt
+            # Falls du ein Suchfeld hast, füttern wir es direkt mit dem Ticker!
+            if "such_eingabe" in locals() or "such_eingabe" in globals():
+                st.session_state.such_eingabe_key = aktie['ticker']
             st.rerun()
-
 
 st.write("")
 st.markdown("### 📊 Top 5 ETFs")
-etf_cols = st.columns(5) # Wieder 5 Spalten für die ETFs
+etf_cols = st.columns(5)
 etf_liste = [x for x in banner_daten if x["typ"] == "ETF"]
+
 deltas_etfs = {
     "Letzte 24 Stunden": ["+1.5%", "+1.1%", "+2.3%", "+0.8%", "-0.2%"],
     "1 Woche": ["+0.8%", "+0.5%", "+1.1%", "+0.2%", "+0.4%"],
     "1 Monat": ["+3.2%", "+2.9%", "+5.4%", "+1.9%", "+2.1%"],
     "1 Jahr": ["+12.5%", "+11.8%", "+24.3%", "+8.5%", "+9.2%"]
 }
+
 for i, etf in enumerate(etf_liste):
     with etf_cols[i]:
         st.metric(label=f"{etf['name']}", value=f"{berechne_preis(etf['preis_usd']):.2f} {symbol}", delta=deltas_etfs[zeitraum_banner][i])
+        
+        # Das gleiche unsichtbare Klick-Feld für die ETFs
+        if st.button("🔎 Details anzeigen", key=f"click_{etf['ticker']}", use_container_width=True, type="secondary"):
+            st.session_state.aktive_aktie = etf['ticker']
+            st.rerun()
 
 st.divider()
+
 # ==============================================================================
 # NEUER BEREICH: DAS SPARSCHWEIN (ETF-SPARPLAN-RECHNER)
 # ==============================================================================
@@ -312,7 +321,10 @@ if "aktive_aktie" not in st.session_state: st.session_state.aktive_aktie = "AAPL
 st.sidebar.header("🔍 Globale Volltextsuche")
 st.sidebar.info("Suche nach Firmennamen oder Ticker (z.B. Tesla, Sony, Intel, BMW)")
 # Das leere Texteingabefeld für den Nutzer
-such_eingabe = st.sidebar.text_input("Firmenname oder Begriff eingeben:", value="").strip()
+such_eingabe = st.sidebar.text_input(
+    "Firmenname oder Begriff eingeben:", 
+    value=st.session_state.aktive_aktie
+).strip()
 
 st.sidebar.markdown("---")
 st.sidebar.header("⏰ Preis-Alarm einrichten")
