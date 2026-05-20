@@ -3,6 +3,34 @@ import yfinance as yf
 import plotly.graph_objects as go
 from datetime import datetime
 import pandas as pd
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def send_price_alert_email(user_email, ticker, current_price, target_price):
+    smtp_server = "://gmail.com" # Oder dein Anbieter
+    smtp_port = 587
+    sender_email = "dein-projekt-email@gmail.com"
+    sender_password = "dein-app-passwort" # Nutze st.secrets für Sicherheit!
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = user_email
+    msg['Subject'] = f"🚨 TOPAKTIE Preisalarm: {ticker}!"
+
+    body = f"Hallo!\n\nDein Preisalarm für {ticker} wurde ausgelöst.\nZielpreis: {target_price} €\nAktueller Kurs: {current_price} €"
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, user_email, msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        st.error(f"E-Mail-Fehler: {e}")
+        return False
 
 # ==============================================================================
 # BEREICH 1: DAS ALIEN-DESIGN & DIE FARBEN (CSS-TRICKS)
@@ -311,26 +339,25 @@ if berechnung_starten:
 
 
 # ==============================================================================
-# BEREICH 6: DIE LINKE SEITENLEISTE (EINGABEFELDER FÜR SUCHE & ALARM)
+# BEREICH 6: DIE LINKE SEITENLEISTE (SUCHE, WUNSCHPREIS & E-MAIL)
 # ==============================================================================
-# Hier aktivieren wir den unsichtbaren Zwischenspeicher der Webseite für Favoriten und Alarme
 if "favoriten" not in st.session_state: st.session_state.favoriten = []
 if "alarme" not in st.session_state: st.session_state.alarme = []
-if "aktive_aktie" not in st.session_state: st.session_state.aktive_aktie = "AAPL"
 
 st.sidebar.header("🔍 Globale Volltextsuche")
-st.sidebar.info("Suche nach Firmennamen oder Ticker (z.B. Tesla, Sony, Intel, BMW)")
-# Das leere Texteingabefeld für den Nutzer
-such_eingabe = st.sidebar.text_input(
-    "Firmenname oder Begriff eingeben:", 
-    value=st.session_state.aktive_aktie
-).strip()
+st.sidebar.info("Tippe einfach den Namen (z.B. Google, Tesla, Apple) oder das Kürzel ein.")
+
+such_eingabe = st.sidebar.text_input("Name oder Kürzel eingeben:", value="", placeholder="z.B. Tesla, Google, AAPL").strip()
+
+# (Die Namens-Übersetzung bleibt hier unverändert im Hintergrund aktiv...)
 
 st.sidebar.markdown("---")
 st.sidebar.header("⏰ Preis-Alarm einrichten")
-# Das Zahleneingabefeld für den Wunschpreis des Alarms
+# 1. Das bestehende Wunschpreis-Feld
 wunschpreis = st.sidebar.number_input(f"Wunschpreis ({symbol}):", min_value=0.0, value=150.0, step=1.0)
 
+# 2. NEU: Das E-Mail-Feld direkt darunter in der Sidebar platzieren!
+user_email = st.sidebar.text_input("Deine E-Mail-Adresse für Benachrichtigungen:", placeholder="deine-mail@web.de")
 
 # ==============================================================================
 # BEREICH 7: DIE UNENDLICHE SUCHE & DIE KENNZAHLEN IN DEN EXPANDERN
@@ -515,42 +542,38 @@ with spalte_chart:
 
 
 # ==============================================================================
-# BEREICH 9: DIE UNTEREN MERKLISTEN UND AKTIVEN PREIS-ALARME
+# BEREICH 9: LOGIK FÜR DEN BUTTON UND AUTOMATISCHEN EMAIL-VERSAND
 # ==============================================================================
-# Wenn der Nutzer links in der Sidebar auf "Preis-Alarm aktivieren" klickt...
-if st.sidebar.button("🔔 Preis-Alarm aktivieren") and such_eingabe:
-    try:
-        t_alarm_obj = yf.Ticker(aktiver_ticker)
-        al_preis = berechne_preis(t_alarm_obj.info.get("currentPrice") or t_alarm_obj.info.get("previousClose", 0.0))
-        # Wir packen einen neuen Alarm als Wörterbuch (Dictionary) in unsere Alarme-Liste
-        neuer_alarm = {
-            "ticker": aktiver_ticker,
-            "name": chart_titel.replace("Kursverlauf für '", "").replace("'", ""),
-            "aktuell": al_preis,
-            "ziel": wunschpreis,
-            "symbol": symbol  # Nutzt das globale Währungssymbol deiner App
-        }
-        st.session_state.alarme.append(neuer_alarm)
-        st.sidebar.success("Alarm erfolgreich hinzugefügt!")
-    except:
-        st.sidebar.error("Alarm konnte nicht gesetzt werden.")
-
-st.divider()
-# Wir teilen den ganz unten Bereich in zwei Hälften auf
-spalte_fav_liste, spalte_alarm_liste = st.columns(2)
-
-with spalte_fav_liste:
-    st.subheader("📋 Deine Merkliste (Favoriten)")
-    if st.session_state.favoriten:
-        for fav in st.session_state.favoriten: st.text(f"⭐ {fav}")
-    else: st.info("Noch keine Favoriten gespeichert.")
-
-with spalte_alarm_liste:
-    st.subheader("⏰ Deine aktiven Preis-Alarme")
-    if st.session_state.alarme:
-        for al in st.session_state.alarme:
-            abstand = al['aktuell'] - al['ziel']
-            richtung = "fällt" if abstand > 0 else "steigt"
-            # Schreibt eine gelbe Warnbox für jeden aktiven Alarm ganz unten hin
-            st.warning(f"🚨 **{al['name']}**: Alarm bei **{al['ziel']:.2f}{al['symbol']}** (Aktuell: {al['aktuell']:.2f}{al['symbol']} | {richtung})")
-    else: st.info("Noch keine Preis-Alarme eingerichtet.")
+# Wenn der Nutzer links in der Sidebar auf den Button klickt...
+if st.sidebar.button("🔔 Preis-Alarm aktivieren") and suchbegriff:
+    # Validierung: Prüfen, ob eine E-Mail eingetragen ist und ein "@" enthält
+    if user_email and "@" in user_email:
+        try:
+            t_alarm_obj = yf.Ticker(aktiver_ticker)
+            roher_live_kurs = t_alarm_obj.info.get("currentPrice") or t_alarm_obj.info.get("previousClose", 0.0)
+            al_preis = berechne_preis(roher_live_kurs)
+            
+            # Wir packen die Daten (inklusive der E-Mail) in unseren Session State Speicher
+            neuer_alarm = {
+                "ticker": aktiver_ticker,
+                "name": chart_titel.replace("Kursverlauf für '", "").replace("'", ""),
+                "aktuell": al_preis,
+                "ziel": wunschpreis,
+                "symbol": symbol,
+                "email": user_email # E-Mail für später mitspeichern
+            }
+            st.session_state.alarme.append(neuer_alarm)
+            st.sidebar.success(f"🟢 Alarm aktiv! Bestätigung an {user_email} eingerichtet.")
+            
+            # --- DER INTELLIGENTE SOFORT-CHECK ---
+            # Wir prüfen live: Hat der Kurs das Ziel JETZT schon berührt oder unterschritten?
+            # (Beispiel: Kurs fällt unter deinen Wunschpreis)
+            if al_preis <= wunschpreis:
+                # Wir rufen deine obere Funktion auf!
+                erfolg = send_price_alert_email(user_email, aktiver_ticker, f"{al_preis:.2f}{symbol}", f"{wunschpreis:.2f}{symbol}")
+                if erfolg:
+                    st.sidebar.info("📬 Sofort-Check: Preis-Alarm wurde bereits ausgelöst und E-Mail versendet!")
+        except Exception as e:
+            st.sidebar.error(f"Fehler beim Einrichten: {e}")
+    else:
+        st.sidebar.error("❌ Bitte gib eine gültige E-Mail-Adresse mit '@' ein, um den Alarm zu aktivieren.")
