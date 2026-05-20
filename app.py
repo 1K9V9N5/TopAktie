@@ -375,10 +375,14 @@ with spalte_details:
                     roher_preis = t_info.get("currentPrice") or t_info.get("previousClose") or t_info.get("regularMarketPrice", 0.0)
                     preis_anzeige = berechne_preis(roher_preis)
                     
+                    # Dynamische Währungserkennung für das Symbol im Expander-Titel
+                    waehrung_ticker = t_info.get("currency", "USD")
+                    symbol_ticker = "€" if waehrung_ticker == "EUR" else "$"
+                    
                     # Der Expander wird innerhalb des try-Blocks geöffnet
-                    with st.expander(f"🔹 {treffer['name']} ({treffer['ticker']}) — {preis_anzeige:.2f} {symbol}"):
+                    with st.expander(f"🔹 {treffer['name']} ({treffer['ticker']}) — {preis_anzeige:.2f} {symbol_ticker}"):
                         
-                        # --- NEU: ZEITRAUM STEUERUNG DIREKT IM EXPANDER ---
+                        # --- ZEITRAUM STEUERUNG DIREKT IM EXPANDER ---
                         chart_zeitraum = st.radio(
                             "Zeitraum für das Diagramm anpassen:",
                             options=["1 Tag", "1 Woche", "1 Monat", "1 Jahr"],
@@ -427,18 +431,15 @@ with spalte_details:
                         else:
                             st.warning("Keine historischen Kursdaten verfügbar.")
                             
-                except Exception as e:
-                    # Fängt Fehler für das Laden der Aktien-Infos ODER des Charts sauber ab
-                    st.error(f"Fehler bei {treffer['ticker']}: {str(e)}")
+                        st.divider()
 
-            
-        # HIERFOLGEN JETZT DEINE BISHERIGEN KENNZAHLEN (die schon im Expander drin standen)...
-
+                        # HIERFOLGEN JETZT DEINE KENNZAHLEN (jetzt sauber eingerückt im Expander)
                         st.markdown(f"**Typ:** {treffer['typ']} | **Börsenplatz:** {t_info.get('exchange', 'Unbekannt')}")
                         st.markdown(f"**Branche:** {t_info.get('industry', 'Keine Angabe')} | **Land:** {t_info.get('country', 'Keine Angabe')}")
                         
                         st.write("")
                         st.markdown("**📊 Wichtige Kennzahlen (Letzte 52 Wochen):**")
+                        
                         # Wir bauen innerhalb der Klappbox noch einmal 3 Spalten für die Kennzahlen!
                         kpi_col1, kpi_col2, kpi_col3 = st.columns(3)
                         
@@ -446,15 +447,21 @@ with spalte_details:
                         tief_52 = berechne_preis(t_info.get("fiftyTwoWeekLow", 0.0))
                         volumen = t_info.get("volume", 0)
                         
-                        with kpi_col1: st.metric(label="52-Wochen Hoch", value=f"{hoch_52:.2f} {symbol}")
-                        with kpi_col2: st.metric(label="52-Wochen Tief", value=f"{tief_52:.2f} {symbol}")
+                        with kpi_col1: 
+                            st.metric(label="52-Wochen Hoch", value=f"{hoch_52:.2f} {symbol_ticker}")
+                        with kpi_col2: 
+                            st.metric(label="52-Wochen Tief", value=f"{tief_52:.2f} {symbol_ticker}")
                         with kpi_col3:
-                            if volumen > 1_000_000: st.metric(label="Handelsvolumen", value=f"{volumen / 1_000_000:.1f} Mio.")
-                            else: st.metric(label="Handelsvolumen", value=f"{volumen:,}")
+                            if volumen > 1_000_000: 
+                                st.metric(label="Handelsvolumen", value=f"{volumen / 1_000_000:.1f} Mio.")
+                            else: 
+                                st.metric(label="Handelsvolumen", value=f"{volumen:,}")
                         st.write("")
                         
                         beschreibung = t_info.get("longBusinessSummary", "Keine Beschreibung gefunden.")
                         st.caption(f"**Firmenprofil:** {beschreibung[:200]}...")
+                        
+                        st.write("")
                         
                         # Klick auf diesen Button speichert den Ticker im Zwischenspeicher für den Chart
                         if st.button("📊 Chart anzeigen", key=f"chart_{treffer['ticker']}"):
@@ -465,8 +472,9 @@ with spalte_details:
                             if treffer['name'] not in st.session_state.favoriten:
                                 st.session_state.favoriten.append(treffer['name'])
                                 st.success(f"{treffer['name']} gespeichert!")
-                except:
-                    st.caption(f"⚪ {treffer['name']} ({treffer['ticker']}) — Keine aktiven Handelsdaten verfügbar.")
+                                
+                except Exception as e:
+                    st.caption(f"⚪ {treffer['name']} ({treffer['ticker']}) — Keine aktiven Handelsdaten verfügbar oder Fehler: {str(e)}")
         else:
             st.warning(f"Das Web lieferte keine aktiven Finanzprodukte für '{such_eingabe}'.")
     else:
@@ -484,7 +492,7 @@ with spalte_chart:
     # Die Selectbox, um den Zeitraum der Kurve anzupassen (1 Monat, 3 Monate, 1 Jahr)
     zeitraum_chart = st.selectbox("Chart-Zeitraum anpassen:", ["1 Monat", "3 Monate", "1 Jahr"], key="chart_zeitraum_select")
     st.markdown(f"**{chart_titel} ({zeitraum_chart})**")
-    yf_period = "1m" if zeitraum_chart == "1 Monat" else "3m" if zeitraum_chart == "3 Monate" else "1y"
+    yf_period = "1mo" if zeitraum_chart == "1 Monat" else "3mo" if zeitraum_chart == "3 Monate" else "1y"
     
     try:
         t_daten = yf.Ticker(aktiver_ticker)
@@ -502,8 +510,8 @@ with spalte_chart:
             st.plotly_chart(fig, use_container_width=True) # Zeigt die fertige Grafik im Browser an
         else:
             st.warning("Keine historischen Chartdaten für diesen Wert verfügbar.")
-    except:
-        st.error("Fehler beim Zeichnen des Live-Charts.")
+    except Exception as e:
+        st.error(f"Fehler beim Zeichnen des Live-Charts: {str(e)}")
 
 
 # ==============================================================================
@@ -520,7 +528,7 @@ if st.sidebar.button("🔔 Preis-Alarm aktivieren") and such_eingabe:
             "name": chart_titel.replace("Kursverlauf für '", "").replace("'", ""),
             "aktuell": al_preis,
             "ziel": wunschpreis,
-            "symbol": symbol
+            "symbol": symbol  # Nutzt das globale Währungssymbol deiner App
         }
         st.session_state.alarme.append(neuer_alarm)
         st.sidebar.success("Alarm erfolgreich hinzugefügt!")
@@ -528,7 +536,7 @@ if st.sidebar.button("🔔 Preis-Alarm aktivieren") and such_eingabe:
         st.sidebar.error("Alarm konnte nicht gesetzt werden.")
 
 st.divider()
-# Wir teilen den ganz unteren Bereich in zwei Hälften auf
+# Wir teilen den ganz unten Bereich in zwei Hälften auf
 spalte_fav_liste, spalte_alarm_liste = st.columns(2)
 
 with spalte_fav_liste:
