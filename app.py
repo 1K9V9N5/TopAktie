@@ -167,6 +167,35 @@ for i, etf in enumerate(etf_liste):
         st.metric(label=f"{etf['name']}", value=f"{berechne_preis(etf['preis_usd']):.2f} {symbol}", delta=deltas_etfs[zeitraum_banner][i])
 
 st.divider()
+# ==============================================================================
+# NEUER BEREICH: DAS SPARSCHWEIN (ETF-SPARPLAN-RECHNER)
+# ==============================================================================
+st.sidebar.markdown("## 🐷 Sparschwein-Feature")
+
+# 1. Die ETF-Auswahl in der Seitenleiste
+ausgewaehlter_etf = st.sidebar.selectbox(
+    "Wähle deinen Sparplan-ETF:", 
+    options=["MSCI World", "S&P 500", "NASDAQ-100"]
+)
+
+# 2. Die monatliche Sparrate in der Seitenleiste
+monatliche_rate = st.sidebar.number_input(
+    "Monatliche Sparrate (€):", 
+    min_value=10, 
+    max_value=1000, 
+    value=100, 
+    step=10
+)
+
+# 3. Der Zeitraum in Jahren in der Seitenleiste
+jahre = st.sidebar.slider(
+    "Anlagezeitraum (Jahre):", 
+    min_value=1, 
+    max_value=30, 
+    value=10
+)
+
+st.sidebar.divider() # Eine feine Linie zur optischen Trennung in der Sidebar
 
 
 # ==============================================================================
