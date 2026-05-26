@@ -1,6 +1,6 @@
 # 🚀 TOPAKTIE - Globales Krypto- & Aktien-Dashboard
 
-Ein hochmodernes, responsives Finanz-Dashboard, das Echtzeit-Marktdaten ohne Schnickschnack auf den Punkt bringt. Entwickelt als interaktive Full-Stack-Webanwendung, um Nutzern die Analyse des weltweiten Finanzmarktes zu vereinfachen.
+Ein hochmodernes, responsives Finanz-Dashboard, das Echtzeit-Marktdaten ohne Schnickschnack auf den Punkt gebracht. Entwickelt als interaktive Full-Stack-Webanwendung, um Nutzern die Analyse des weltweiten Finanzmarktes zu vereinfachen.
 
 ## 🔗 Live-Demo
 Probiere die App direkt auf deinem Smartphone oder PC aus:
@@ -29,5 +29,14 @@ Probiere die App direkt auf deinem Smartphone oder PC aus:
 
 ---
 
+## 💡 Entwicklungsprozess & Arbeitsweise
+
+Dieses Projekt wurde im Rahmen eines modernen AI-Assisted-Coding-Ansatzes (KI-gestützte Entwicklung) realisiert. Die Konzeption der finanzmathematischen Zinseszins-Schleifen, die Strukturierung der API-Abfragen, das SMTP-Mail-Setup sowie das finale Code-Refactoring lagen vollständig in meiner Hand, während generative KI-Tools zur effizienten Code-Synthese genutzt wurden.
+
+---
+
 ## 🧠 Über den Code
 Der Code umfasst über 600 Zeilen und ist **vollständig und detailliert auf Deutsch kommentiert**. Jede Funktion und Logikschleife wurde dokumentiert, um maximale Transparenz und Teamfähigkeit ("Clean Code") zu garantieren.
+
+---
+*Built by K.K.*
